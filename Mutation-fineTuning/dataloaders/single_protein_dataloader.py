@@ -1,8 +1,11 @@
 import os
 import torch
+import glob
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
+device = torch.device("cuda:0" if torch.cuda.is_available() else 'cpu') 
+
 
 class SingleProteinDataset(Dataset):
     def __init__(self, csv_path, tensor_folder, indices=None):
@@ -15,11 +18,11 @@ class SingleProteinDataset(Dataset):
         self.csv = pd.read_csv(csv_path)
         self.tensor_folder = tensor_folder
 
-        self.coords = torch.load(os.path.join(tensor_folder, "coords_tensor.pt"))
-        self.one_hot = torch.load(os.path.join(tensor_folder, "one_hot_encodings.pt"))
-        self.deltaG = torch.load(os.path.join(tensor_folder, "deltaG.pt"))
-        self.mask = torch.load(os.path.join(tensor_folder, "mask_tensor.pt"))
-        self.embeddings = torch.load(os.path.join(tensor_folder, "prott5_embeddings", "embeddings.pt"))
+        self.coords = torch.load(os.path.join(tensor_folder, "coords_tensor.pt"), map_location=device, weights_only=False)
+        self.one_hot = torch.load(os.path.join(tensor_folder, "one_hot_encodings.pt"), map_location=device, weights_only=False)
+        self.deltaG = torch.load(os.path.join(tensor_folder, "deltaG.pt"), map_location=device, weights_only=False)
+        self.mask = torch.load(os.path.join(tensor_folder, "mask_tensor.pt"), map_location=device, weights_only=False)
+        self.embedding_tensor = self.load_embedding_tensor(os.path.join(tensor_folder, 'prott5_embeddings'))
 
         self.indices = indices if indices is not None else list(range(len(self.csv)))
 
@@ -36,6 +39,23 @@ class SingleProteinDataset(Dataset):
             "embedding": self.embeddings[real_idx],
             "csv_data": self.csv.iloc[real_idx].to_dict()
         }
+    
+    def load_embedding_tensor(self, embeddings_dir):
+        embeddings = []
+        if not os.path.exists(embeddings_dir):
+            print(f"Warning: Embeddings directory not found: {embeddings_dir}")
+            return torch.tensor([])
+            
+        all_embedding_files = sorted(glob.glob(os.path.join(embeddings_dir, 'prott5_embedding_*.pt')),
+                                     key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
+        for filename in all_embedding_files:
+            if filename.endswith('.pt'):
+                embedding_tensor = torch.load(filename, weights_only=False, map_location=device)
+                embeddings.append(embedding_tensor)
+        
+        if not embeddings:
+            return torch.tensor([])
+        return torch.vstack(embeddings)
 
 
 def create_dataloaders(csv_path, tensor_folder, batch_size=32, num_workers=0, seed=42):
@@ -58,3 +78,5 @@ def create_dataloaders(csv_path, tensor_folder, batch_size=32, num_workers=0, se
     test_loader  = DataLoader(test_dataset,  batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return train_loader, val_loader, test_loader
+
+

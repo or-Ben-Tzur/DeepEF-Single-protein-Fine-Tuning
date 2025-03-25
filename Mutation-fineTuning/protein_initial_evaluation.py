@@ -80,10 +80,10 @@ class ProteinEvaluationDataset(Dataset):
         
         # Load and preprocess the data for each protein
         try:
-            coords_tensor = torch.load(os.path.join(protein_dir, COORDS),weights_only=False, map_location=torch.device('cpu'))
-            delta_g_tensor = torch.load(os.path.join(protein_dir, DELTA_G), weights_only=False, map_location=torch.device('cpu'))
-            mask_tensor = torch.load(os.path.join(protein_dir, MASKS), weights_only=False, map_location=torch.device('cpu'))
-            one_hot_tensor = torch.load(os.path.join(protein_dir, ONE_HOT), weights_only=False, map_location=torch.device('cpu'))
+            coords_tensor = torch.load(os.path.join(protein_dir, COORDS),weights_only=False, map_location=CFG.device)
+            delta_g_tensor = torch.load(os.path.join(protein_dir, DELTA_G), weights_only=False, map_location=CFG.device)
+            mask_tensor = torch.load(os.path.join(protein_dir, MASKS), weights_only=False, map_location=CFG.device)
+            one_hot_tensor = torch.load(os.path.join(protein_dir, ONE_HOT), weights_only=False, map_location=CFG.device)
             embedding_tensor = self.load_embedding_tensor(os.path.join(protein_dir, PROTT5_EMBEDDINGS))
             
             # Remove mutations with more than one mutation
@@ -128,7 +128,7 @@ class ProteinEvaluationDataset(Dataset):
                                      key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
         for filename in all_embedding_files:
             if filename.endswith('.pt'):
-                embedding_tensor = torch.load(filename, weights_only=False, map_location=torch.device('cpu'))
+                embedding_tensor = torch.load(filename, weights_only=False, map_location=CFG.device)
                 embeddings.append(embedding_tensor)
         
         if not embeddings:
