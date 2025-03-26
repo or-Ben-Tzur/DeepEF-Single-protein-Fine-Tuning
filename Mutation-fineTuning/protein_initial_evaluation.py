@@ -26,7 +26,6 @@ PROTT5_EMBEDDINGS = 'prott5_embeddings'
 NANO_TO_ANGSTROM = 0.1
 MINI_BATCH_SIZE = 32
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-TRAINED_MODEL_PATH = "./res/trianed_models-2cycle_drop/25_final_model.pt"
 REG_LAMBDA = 0.01
 
 # Directories
