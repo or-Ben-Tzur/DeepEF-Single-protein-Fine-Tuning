@@ -13,5 +13,5 @@ echo "SLURM_JOBID"=$SLURM_JOBID
 echo "SLURM_JOB_NODELIST"=$SLURM_JOB_NODELIST
 ### Start your code below ####
 module load anaconda ### load anaconda module
-source activate my_env ### activate a conda environment, replace my_env with your conda environment
-python protein_initial_evaluation.csv
+source activate base ### activate a conda environment, replace my_env with your conda environment
+python protein_initial_evaluation.py
