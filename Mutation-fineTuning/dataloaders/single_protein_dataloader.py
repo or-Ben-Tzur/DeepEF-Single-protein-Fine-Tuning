@@ -16,10 +16,8 @@ class SingleProteinDataset(Dataset):
         - indices: optional list of row indices to include (for splitting)
         """
         df = pd.read_csv(csv_path)  # ✅ correct assignment
-        print(len(df))
         df = df[~df['name'].str.contains('ins|del')]
         self.csv_data = df
-        print(len(self.csv_data))
         self.tensor_folder = tensor_folder
 
         # Load tensors
@@ -74,7 +72,9 @@ def create_dataloaders(csv_path, tensor_folder, batch_size=32, num_workers=0, se
     Returns: train_loader, val_loader, test_loader
     """
     df = pd.read_csv(csv_path)
+    df = df[~df['name'].str.contains('ins|del')]
     all_indices = list(range(len(df)))
+    
 
     train_idx, temp_idx = train_test_split(all_indices, train_size=0.8, random_state=seed)
     val_idx, test_idx = train_test_split(temp_idx, test_size=0.5, random_state=seed)
