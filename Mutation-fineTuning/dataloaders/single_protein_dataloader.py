@@ -15,29 +15,39 @@ class SingleProteinDataset(Dataset):
         - tensor_folder: folder with tensors (coords, embeddings, etc.)
         - indices: optional list of row indices to include (for splitting)
         """
-        self.csv = pd.read_csv(csv_path)
+        df = pd.read_csv(csv_path)  # ✅ correct assignment
+        print(len(df))
+        df = df[~df['name'].str.contains('ins|del')]
+        self.csv_data = df
+        print(len(self.csv_data))
         self.tensor_folder = tensor_folder
 
-        self.coords = torch.load(os.path.join(tensor_folder, "coords_tensor.pt"), map_location=device, weights_only=False)
-        self.one_hot = torch.load(os.path.join(tensor_folder, "one_hot_encodings.pt"), map_location=device, weights_only=False)
-        self.deltaG = torch.load(os.path.join(tensor_folder, "deltaG.pt"), map_location=device, weights_only=False)
-        self.mask = torch.load(os.path.join(tensor_folder, "mask_tensor.pt"), map_location=device, weights_only=False)
+        # Load tensors
+        self.coords = torch.load(os.path.join(tensor_folder, "coords_tensor.pt"), map_location=device)
+        self.one_hot = torch.load(os.path.join(tensor_folder, "one_hot_encodings.pt"), map_location=device)
+        self.deltaG = torch.load(os.path.join(tensor_folder, "deltaG.pt"), map_location=device)
+        self.mask = torch.load(os.path.join(tensor_folder, "mask_tensor.pt"), map_location=device)
         self.embedding_tensor = self.load_embedding_tensor(os.path.join(tensor_folder, 'prott5_embeddings'))
+        
 
-        self.indices = indices if indices is not None else list(range(len(self.csv)))
+        # Apply index-based filtering (for train/val/test splits)
+        self.indices = indices if indices is not None else list(range(len(self.csv_data)))
+
 
     def __len__(self):
         return len(self.indices)
 
+    
     def __getitem__(self, idx):
         real_idx = self.indices[idx]
         return {
-            "coords": self.coords[real_idx],
+            "coords": self.coords,
             "one_hot": self.one_hot[real_idx],
             "deltaG": self.deltaG[real_idx],
-            "mask": self.mask[real_idx],
-            "embedding": self.embeddings[real_idx],
-            "csv_data": self.csv.iloc[real_idx].to_dict()
+            "mask": self.mask,
+            "embedding": self.embedding_tensor[real_idx],
+            "csv_data": self.csv_data.iloc[real_idx].to_dict()
+
         }
     
     def load_embedding_tensor(self, embeddings_dir):
@@ -80,3 +90,30 @@ def create_dataloaders(csv_path, tensor_folder, batch_size=32, num_workers=0, se
     return train_loader, val_loader, test_loader
 
 
+# def create_dataloaders(csv_path, tensor_folder, batch_size=8):
+#     import pandas as pd
+#     from sklearn.model_selection import train_test_split
+
+#     # Load CSV and tensors
+#     csv_data = pd.read_csv(csv_path)
+#     coords = torch.load(os.path.join(tensor_folder, "coords_tensor.pt"), map_location=device)
+
+#     # Slice the CSV so it matches the tensor length
+#     csv_data = csv_data[:len(coords)]
+
+#     # Now create shuffled indices
+#     indices = list(range(len(csv_data)))
+#     train_idx, temp_idx = train_test_split(indices, test_size=0.2, random_state=42)
+#     val_idx, test_idx = train_test_split(temp_idx, test_size=0.5, random_state=42)
+
+#     # Create datasets
+#     train_dataset = SingleProteinDataset(csv_path, tensor_folder, train_idx)
+#     val_dataset = SingleProteinDataset(csv_path, tensor_folder, val_idx)
+#     test_dataset = SingleProteinDataset(csv_path, tensor_folder, test_idx)
+
+#     # Create dataloaders
+#     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+#     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+#     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+#     return train_loader, val_loader, test_loader
